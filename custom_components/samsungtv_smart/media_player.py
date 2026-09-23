@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from enum import Enum
 import logging
 from socket import error as socketError
@@ -853,7 +853,7 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         if self.state == MediaPlayerState.ON:
             if self._delayed_set_source:
                 difference = (
-                    datetime.now(timezone.utc) - self._delayed_set_source_time
+                    datetime.utcnow() - self._delayed_set_source_time
                 ).total_seconds()
                 if difference > DELAYED_SOURCE_TIMEOUT:
                     self._delayed_set_source = None
@@ -1654,7 +1654,7 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
         if self.state != MediaPlayerState.ON:
             if await self._async_turn_on():
                 self._delayed_set_source = source
-                self._delayed_set_source_time = datetime.now(timezone.utc)
+                self._delayed_set_source_time = datetime.utcnow()
             return
 
         if self._source_list and source in self._source_list:
@@ -1667,6 +1667,12 @@ class SamsungTVDevice(SamsungTVEntity, MediaPlayerEntity):
             await self._async_launch_app(app_id)
             if self._st:
                 self._st.set_application(self._app_list_st[source])
+        elif source.startswith("app:") and source[4:]:
+            app_id = source[4:]
+            running_app = source
+            await self._async_launch_app(app_id)
+            if self._st:
+                self._st.set_application(app_id)
         elif self._channel_list and source in self._channel_list:
             source_key = self._channel_list[source]
             await self._async_set_channel(source_key)
